@@ -153,6 +153,17 @@ export default function BookingWizard() {
     if (result) setTimeout(() => navigate("/dashboard"), 900);
   };
 
+  const payAtSite = async () => {
+    if (!booking) return;
+    try {
+      await api.post("/payments/pay-at-site", { booking_id: booking.id });
+      toast.success("Booking confirmed! Please pay at site.");
+      setTimeout(() => navigate("/dashboard"), 900);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Failed to confirm booking");
+    }
+  };
+
   if (!vehicle) {
     return (
       <div className="min-h-screen bg-[#FAFAFA]">
@@ -295,7 +306,7 @@ export default function BookingWizard() {
                     Please wait until your KYC is approved to pay. You can return here from <Link to="/dashboard" className="underline">My Bookings</Link>.
                   </div>
                 ) : (
-                  <div className="mt-6 grid gap-4 md:grid-cols-2">
+                  <div className="mt-6 grid gap-4 md:grid-cols-3">
                     <PayOption
                       title="Pay in full"
                       amount={booking.total_amount}
@@ -310,6 +321,13 @@ export default function BookingWizard() {
                       onClick={() => pay("partial")}
                       testid="pay-partial"
                       accent
+                    />
+                    <PayOption
+                      title="Pay At Site"
+                      amount={booking.total_amount}
+                      caption="Pay total amount when you pick up the vehicle."
+                      onClick={() => payAtSite()}
+                      testid="pay-site"
                     />
                   </div>
                 )}

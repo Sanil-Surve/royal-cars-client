@@ -8,6 +8,7 @@ import { api, formatINR } from "../lib/api";
 import { payForBooking } from "../lib/razorpay";
 import StatusBadge from "../components/StatusBadge";
 import { useAuth } from "../context/AuthContext";
+import { toast } from "sonner";
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
@@ -31,6 +32,16 @@ export default function CustomerDashboard() {
 
   const payForBookingFn = async (booking, type) => {
     await payForBooking(booking, type, () => load());
+  };
+
+  const handlePayAtSite = async (booking) => {
+    try {
+      await api.post("/payments/pay-at-site", { booking_id: booking.id });
+      toast.success("Booking confirmed! Please pay at site.");
+      load();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Failed to confirm booking");
+    }
   };
 
   return (
@@ -64,7 +75,7 @@ export default function CustomerDashboard() {
           </Card>
         ) : (
           <div className="space-y-10">
-            <Section title="Active bookings" items={active} payForBooking={payForBookingFn} payRemaining={payRemaining} user={user} />
+            <Section title="Active bookings" items={active} payForBooking={payForBookingFn} payRemaining={payRemaining} handlePayAtSite={handlePayAtSite} user={user} />
             <Section title="Past bookings" items={past} />
           </div>
         )}
@@ -73,7 +84,7 @@ export default function CustomerDashboard() {
   );
 }
 
-function Section({ title, items, payForBooking, payRemaining, user }) {
+function Section({ title, items, payForBooking, payRemaining, handlePayAtSite, user }) {
   if (items.length === 0) return null;
   return (
     <div>
@@ -110,6 +121,11 @@ function Section({ title, items, payForBooking, payRemaining, user }) {
                   <Button size="sm" variant="outline" onClick={() => payForBooking(b, "partial")} className="rounded-md" data-testid={`pay-partial-${b.id}`}>
                     Pay 20% advance
                   </Button>
+                  {handlePayAtSite && (
+                    <Button size="sm" variant="outline" onClick={() => handlePayAtSite(b)} className="rounded-md border-slate-300" data-testid={`pay-site-${b.id}`}>
+                      Pay At Site
+                    </Button>
+                  )}
                 </div>
               )}
               {payRemaining && b.balance_amount > 0 && b.paid_amount > 0 && b.status === "confirmed" && (
