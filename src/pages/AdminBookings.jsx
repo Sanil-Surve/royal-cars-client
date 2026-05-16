@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { CreditCard, Check } from "lucide-react";
+import { CreditCard, Check, Play, Square } from "lucide-react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { api, formatINR, formatApiErrorDetail } from "../lib/api";
 import StatusBadge from "../components/StatusBadge";
+import StartRideDialog from "../components/StartRideDialog";
+import EndRideDialog from "../components/EndRideDialog";
 import { toast } from "sonner";
 
 const STATUSES = ["pending_kyc", "verified", "confirmed", "active", "completed", "cancelled"];
@@ -13,6 +15,8 @@ const STATUSES = ["pending_kyc", "verified", "confirmed", "active", "completed",
 export default function AdminBookings() {
   const [bookings, setBookings] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [startDialog, setStartDialog] = useState({ open: false, booking: null });
+  const [endDialog, setEndDialog] = useState({ open: false, booking: null });
 
   const load = async () => {
     const params = filter !== "all" ? { status: filter } : {};
@@ -95,6 +99,30 @@ export default function AdminBookings() {
                 <TableCell><StatusBadge status={b.status} /></TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
+                    {/* Start Ride button — only for confirmed bookings */}
+                    {b.status === "confirmed" && (
+                      <Button
+                        size="sm"
+                        onClick={() => setStartDialog({ open: true, booking: b })}
+                        className="h-8 rounded-md bg-emerald-600 text-white hover:bg-emerald-700"
+                        data-testid={`start-ride-${b.id}`}
+                        title="Start ride for this booking"
+                      >
+                        <Play className="mr-1 h-3 w-3" /> Start
+                      </Button>
+                    )}
+                    {/* End Ride button — only for active bookings */}
+                    {b.status === "active" && (
+                      <Button
+                        size="sm"
+                        onClick={() => setEndDialog({ open: true, booking: b })}
+                        className="h-8 rounded-md bg-red-600 text-white hover:bg-red-700"
+                        data-testid={`end-ride-${b.id}`}
+                        title="End ride for this booking"
+                      >
+                        <Square className="mr-1 h-3 w-3" /> End
+                      </Button>
+                    )}
                     {b.balance_amount > 0 && b.razorpay_token_id && (
                       <Button size="sm" onClick={() => chargeBalance(b.id)} className="h-8 rounded-md bg-[#D4AF37] text-[#0A192F] hover:bg-[#D4AF37]/90" data-testid={`charge-balance-${b.id}`} title="Auto-charge balance to saved card">
                         <CreditCard className="mr-1 h-3 w-3" /> Charge {formatINR(b.balance_amount)}
@@ -121,6 +149,24 @@ export default function AdminBookings() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Dialogs */}
+      {startDialog.booking && (
+        <StartRideDialog
+          booking={startDialog.booking}
+          open={startDialog.open}
+          onOpenChange={(open) => setStartDialog((s) => ({ ...s, open }))}
+          onSuccess={load}
+        />
+      )}
+      {endDialog.booking && (
+        <EndRideDialog
+          booking={endDialog.booking}
+          open={endDialog.open}
+          onOpenChange={(open) => setEndDialog((s) => ({ ...s, open }))}
+          onSuccess={load}
+        />
+      )}
     </div>
   );
 }
