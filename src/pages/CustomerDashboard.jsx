@@ -40,7 +40,7 @@ export default function CustomerDashboard() {
       toast.success("Booking confirmed! Please pay at site.");
       load();
     } catch (e) {
-      toast.error(e.response?.data?.detail || "Failed to confirm booking");
+      toast.error(e.response?.data?.detail || "Failed to confirm bookings");
     }
   };
 
