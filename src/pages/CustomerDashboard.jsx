@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, CreditCard, FileText } from "lucide-react";
+import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -89,54 +90,74 @@ function Section({ title, items, payForBooking, payRemaining, handlePayAtSite, u
   return (
     <div>
       <h2 className="mb-4 font-heading text-xl text-[#0A192F]">{title}</h2>
-      <div className="grid gap-4">
+      <motion.div 
+        className="grid gap-4"
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: { opacity: 0 },
+          show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+          }
+        }}
+      >
         {items.map((b) => (
-          <Card key={b.id} className="grid gap-4 rounded-lg border-slate-200 p-4 md:grid-cols-[140px_1fr_auto]" data-testid={`booking-${b.id}`}>
-            <div className="aspect-[4/3] overflow-hidden rounded-md bg-slate-100">
-              {b.vehicle_image ? <img src={b.vehicle_image} alt={b.vehicle_name} className="h-full w-full object-cover" /> : null}
-            </div>
-            <div>
-              <div className="flex items-center gap-3">
-                <h3 className="font-heading text-lg text-[#0A192F]">{b.vehicle_name}</h3>
-                <StatusBadge status={b.status} />
+          <motion.div 
+            key={b.id}
+            variants={{
+              hidden: { opacity: 0, y: 15 },
+              show: { opacity: 1, y: 0 }
+            }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="grid gap-4 rounded-lg border-slate-200 p-4 md:grid-cols-[140px_1fr_auto]" data-testid={`booking-${b.id}`}>
+              <div className="aspect-[4/3] overflow-hidden rounded-md bg-slate-100">
+                {b.vehicle_image ? <img src={b.vehicle_image} alt={b.vehicle_name} className="h-full w-full object-cover transition hover:scale-105" /> : null}
               </div>
-              <div className="mt-1 text-xs text-slate-500">Booking #{b.id.slice(0, 8)}</div>
-              <div className="mt-2 grid gap-1 text-sm text-slate-600 sm:grid-cols-2">
-                <div>Pickup: {b.pickup_date} {b.pickup_time}</div>
-                <div>Drop-off: {b.dropoff_date} {b.dropoff_time}</div>
-              </div>
-              <div className="mt-2 text-sm">
-                <span className="text-slate-600">Total: </span><span className="font-heading text-[#0A192F]">{formatINR(b.total_amount)}</span>
-                {b.balance_amount > 0 && b.paid_amount > 0 && (
-                  <span className="ml-2 text-xs text-amber-700">Balance: {formatINR(b.balance_amount)}</span>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col items-end justify-between gap-2">
-              {payForBooking && b.status === "verified" && user?.kyc_status === "approved" && (
-                <div className="flex flex-col gap-2">
-                  <Button size="sm" onClick={() => payForBooking(b, "full")} className="rounded-md bg-[#0A192F] text-white" data-testid={`pay-full-${b.id}`}>
-                    <CreditCard className="mr-2 h-4 w-4" /> Pay {formatINR(b.total_amount)}
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => payForBooking(b, "partial")} className="rounded-md" data-testid={`pay-partial-${b.id}`}>
-                    Pay 20% advance
-                  </Button>
-                  {handlePayAtSite && (
-                    <Button size="sm" variant="outline" onClick={() => handlePayAtSite(b)} className="rounded-md border-slate-300" data-testid={`pay-site-${b.id}`}>
-                      Pay At Site
-                    </Button>
+              <div>
+                <div className="flex items-center gap-3">
+                  <h3 className="font-heading text-lg text-[#0A192F]">{b.vehicle_name}</h3>
+                  <StatusBadge status={b.status} />
+                </div>
+                <div className="mt-1 text-xs text-slate-500">Booking #{b.id.slice(0, 8)}</div>
+                <div className="mt-2 grid gap-1 text-sm text-slate-600 sm:grid-cols-2">
+                  <div>Pickup: {b.pickup_date} {b.pickup_time}</div>
+                  <div>Drop-off: {b.dropoff_date} {b.dropoff_time}</div>
+                </div>
+                <div className="mt-2 text-sm">
+                  <span className="text-slate-600">Total: </span><span className="font-heading text-[#0A192F]">{formatINR(b.total_amount)}</span>
+                  {b.balance_amount > 0 && b.paid_amount > 0 && (
+                    <span className="ml-2 text-xs text-amber-700">Balance: {formatINR(b.balance_amount)}</span>
                   )}
                 </div>
-              )}
-              {payRemaining && b.balance_amount > 0 && b.paid_amount > 0 && b.status === "confirmed" && (
-                <Button size="sm" onClick={() => payRemaining(b)} variant="outline" className="rounded-md border-[#D4AF37] text-[#0A192F]" data-testid={`pay-balance-${b.id}`}>
-                  Pay balance {formatINR(b.balance_amount)}
-                </Button>
-              )}
-            </div>
-          </Card>
+              </div>
+              <div className="flex flex-col items-end justify-between gap-2">
+                {payForBooking && b.status === "verified" && user?.kyc_status === "approved" && (
+                  <div className="flex flex-col gap-2">
+                    <Button size="sm" onClick={() => payForBooking(b, "full")} className="rounded-md bg-[#0A192F] text-white" data-testid={`pay-full-${b.id}`}>
+                      <CreditCard className="mr-2 h-4 w-4" /> Pay {formatINR(b.total_amount)}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => payForBooking(b, "partial")} className="rounded-md" data-testid={`pay-partial-${b.id}`}>
+                      Pay 20% advance
+                    </Button>
+                    {handlePayAtSite && (
+                      <Button size="sm" variant="outline" onClick={() => handlePayAtSite(b)} className="rounded-md border-slate-300" data-testid={`pay-site-${b.id}`}>
+                        Pay At Site
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {payRemaining && b.balance_amount > 0 && b.paid_amount > 0 && b.status === "confirmed" && (
+                  <Button size="sm" onClick={() => payRemaining(b)} variant="outline" className="rounded-md border-[#D4AF37] text-[#0A192F]" data-testid={`pay-balance-${b.id}`}>
+                    Pay balance {formatINR(b.balance_amount)}
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }

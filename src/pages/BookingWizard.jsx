@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Check, ChevronRight, ShieldCheck } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -192,159 +193,169 @@ export default function BookingWizard() {
 
         <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
           {/* Main */}
-          <div className="fade-up">
-            {step === 0 && (
-              <Card className="rounded-lg border-slate-200 p-6">
-                <h2 className="font-heading text-2xl text-[#0A192F]">Choose pickup & drop-off</h2>
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="text-xs uppercase tracking-widest text-slate-500">Pickup location</label>
-                    <Select value={pickup} onValueChange={setPickup}>
-                      <SelectTrigger className="mt-1 h-11 rounded-md" data-testid="book-pickup"><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>
-                        {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-widest text-slate-500">Drop-off location</label>
-                    <Select value={dropoff} onValueChange={setDropoff}>
-                      <SelectTrigger className="mt-1 h-11 rounded-md" data-testid="book-dropoff"><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>
-                        {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {step === 1 && (
-              <Card className="rounded-lg border-slate-200 p-6">
-                <h2 className="font-heading text-2xl text-[#0A192F]">Pick your dates</h2>
-                <p className="mt-1 text-sm text-slate-500">All rentals are in <b>24-hour blocks</b>. You'll return the car at the same time on your drop-off date. Slots run between <b>5:00 AM and 11:00 PM</b>.</p>
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="text-xs uppercase tracking-widest text-slate-500">Pickup date</label>
-                    <Input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="mt-1 h-11 rounded-md" data-testid="book-pickup-date" />
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-widest text-slate-500">Drop-off date</label>
-                    <Input type="date" value={dropoffDate} onChange={(e) => setDropoffDate(e.target.value)} className="mt-1 h-11 rounded-md" data-testid="book-dropoff-date" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-xs uppercase tracking-widest text-slate-500">Pickup &amp; drop-off time</label>
-                    <Select value={bookingTime} onValueChange={setBookingTime}>
-                      <SelectTrigger className="mt-1 h-11 rounded-md" data-testid="book-time"><SelectValue placeholder="Select time" /></SelectTrigger>
-                      <SelectContent className="max-h-64">
-                        {TIME_SLOTS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <p className="mt-2 text-xs text-slate-500">Same time for both pickup and return.</p>
-                  </div>
-                </div>
-                {vehicle.overtime_rate_per_hour ? (
-                  <div className="mt-5 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                    <b>Overtime fee:</b> {formatINR(vehicle.overtime_rate_per_hour)}/hour if you return the car after the scheduled drop-off time.
-                  </div>
-                ) : null}
-              </Card>
-            )}
-
-            {step === 2 && pricing && (
-              <Card className="rounded-lg border-slate-200 p-6">
-                <h2 className="font-heading text-2xl text-[#0A192F]">Review & confirm</h2>
-                <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                  <InfoRow label="Vehicle" value={vehicle.name} />
-                  <InfoRow label="Duration" value={`${pricing.days} day${pricing.days > 1 ? "s" : ""}`} />
-                  <InfoRow label="Pickup" value={`${locations.find(l => l.id === pickup)?.name || "-"} · ${pickupDate} ${pickupTime}`} />
-                  <InfoRow label="Drop-off" value={`${locations.find(l => l.id === dropoff)?.name || "-"} · ${dropoffDate} ${dropoffTime}`} />
-                </div>
-                <div className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">
-                  <div className="flex justify-between py-1"><span className="text-slate-600">Rent ({pricing.days} × {formatINR(vehicle.price_per_24hrs)})</span><span>{formatINR(pricing.rent)}</span></div>
-                  <div className="flex justify-between py-1"><span className="text-slate-600">Refundable deposit</span><span>{formatINR(pricing.deposit)}</span></div>
-                  {vehicle.overtime_rate_per_hour ? (
-                    <div className="flex justify-between py-1 text-xs text-slate-500"><span>Overtime (beyond drop-off)</span><span>{formatINR(vehicle.overtime_rate_per_hour)}/hr</span></div>
-                  ) : null}
-                  <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 font-heading text-lg text-[#0A192F]"><span>Total</span><span data-testid="summary-total">{formatINR(pricing.total)}</span></div>
-                </div>
-                {!user && (
-                  <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    You'll need to <Link to="/login" className="underline">sign in</Link> to confirm this booking.
-                  </div>
+          <div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {step === 0 && (
+                  <Card className="rounded-lg border-slate-200 p-6">
+                    <h2 className="font-heading text-2xl text-[#0A192F]">Choose pickup & drop-off</h2>
+                    <div className="mt-6 grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="text-xs uppercase tracking-widest text-slate-500">Pickup location</label>
+                        <Select value={pickup} onValueChange={setPickup}>
+                          <SelectTrigger className="mt-1 h-11 rounded-md" data-testid="book-pickup"><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-xs uppercase tracking-widest text-slate-500">Drop-off location</label>
+                        <Select value={dropoff} onValueChange={setDropoff}>
+                          <SelectTrigger className="mt-1 h-11 rounded-md" data-testid="book-dropoff"><SelectValue placeholder="Select" /></SelectTrigger>
+                          <SelectContent>
+                            {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </Card>
                 )}
-              </Card>
-            )}
 
-            {step === 3 && booking && (
-              <Card className="rounded-lg border-slate-200 p-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="font-heading text-2xl text-[#0A192F]">KYC verification</h2>
-                  <StatusBadge status={user?.kyc_status || "not_submitted"} />
-                </div>
-                {user?.kyc_status === "approved" ? (
-                  <div className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-                    <ShieldCheck className="mb-1 h-5 w-5" />
-                    Your KYC is already approved. You can proceed to payment.
-                  </div>
-                ) : (
-                  <>
-                    <p className="mt-2 text-sm text-slate-600">Upload the 6 required documents. Our fleet team reviews them within a few hours.</p>
-                    <Button onClick={() => navigate("/kyc?from=book")} className="mt-6 rounded-md bg-[#0A192F] text-white" data-testid="wizard-goto-kyc">
-                      Go to KYC upload <ChevronRight className="ml-1 h-4 w-4" />
+                {step === 1 && (
+                  <Card className="rounded-lg border-slate-200 p-6">
+                    <h2 className="font-heading text-2xl text-[#0A192F]">Pick your dates</h2>
+                    <p className="mt-1 text-sm text-slate-500">All rentals are in <b>24-hour blocks</b>. You'll return the car at the same time on your drop-off date. Slots run between <b>5:00 AM and 11:00 PM</b>.</p>
+                    <div className="mt-6 grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="text-xs uppercase tracking-widest text-slate-500">Pickup date</label>
+                        <Input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="mt-1 h-11 rounded-md" data-testid="book-pickup-date" />
+                      </div>
+                      <div>
+                        <label className="text-xs uppercase tracking-widest text-slate-500">Drop-off date</label>
+                        <Input type="date" value={dropoffDate} onChange={(e) => setDropoffDate(e.target.value)} className="mt-1 h-11 rounded-md" data-testid="book-dropoff-date" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="text-xs uppercase tracking-widest text-slate-500">Pickup &amp; drop-off time</label>
+                        <Select value={bookingTime} onValueChange={setBookingTime}>
+                          <SelectTrigger className="mt-1 h-11 rounded-md" data-testid="book-time"><SelectValue placeholder="Select time" /></SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            {TIME_SLOTS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <p className="mt-2 text-xs text-slate-500">Same time for both pickup and return.</p>
+                      </div>
+                    </div>
+                    {vehicle.overtime_rate_per_hour ? (
+                      <div className="mt-5 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                        <b>Overtime fee:</b> {formatINR(vehicle.overtime_rate_per_hour)}/hour if you return the car after the scheduled drop-off time.
+                      </div>
+                    ) : null}
+                  </Card>
+                )}
+
+                {step === 2 && pricing && (
+                  <Card className="rounded-lg border-slate-200 p-6">
+                    <h2 className="font-heading text-2xl text-[#0A192F]">Review & confirm</h2>
+                    <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                      <InfoRow label="Vehicle" value={vehicle.name} />
+                      <InfoRow label="Duration" value={`${pricing.days} day${pricing.days > 1 ? "s" : ""}`} />
+                      <InfoRow label="Pickup" value={`${locations.find(l => l.id === pickup)?.name || "-"} · ${pickupDate} ${pickupTime}`} />
+                      <InfoRow label="Drop-off" value={`${locations.find(l => l.id === dropoff)?.name || "-"} · ${dropoffDate} ${dropoffTime}`} />
+                    </div>
+                    <div className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">
+                      <div className="flex justify-between py-1"><span className="text-slate-600">Rent ({pricing.days} × {formatINR(vehicle.price_per_24hrs)})</span><span>{formatINR(pricing.rent)}</span></div>
+                      <div className="flex justify-between py-1"><span className="text-slate-600">Refundable deposit</span><span>{formatINR(pricing.deposit)}</span></div>
+                      {vehicle.overtime_rate_per_hour ? (
+                        <div className="flex justify-between py-1 text-xs text-slate-500"><span>Overtime (beyond drop-off)</span><span>{formatINR(vehicle.overtime_rate_per_hour)}/hr</span></div>
+                      ) : null}
+                      <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 font-heading text-lg text-[#0A192F]"><span>Total</span><span data-testid="summary-total">{formatINR(pricing.total)}</span></div>
+                    </div>
+                    {!user && (
+                      <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                        You'll need to <Link to="/login" className="underline">sign in</Link> to confirm this booking.
+                      </div>
+                    )}
+                  </Card>
+                )}
+
+                {step === 3 && booking && (
+                  <Card className="rounded-lg border-slate-200 p-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="font-heading text-2xl text-[#0A192F]">KYC verification</h2>
+                      <StatusBadge status={user?.kyc_status || "not_submitted"} />
+                    </div>
+                    {user?.kyc_status === "approved" ? (
+                      <div className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                        <ShieldCheck className="mb-1 h-5 w-5" />
+                        Your KYC is already approved. You can proceed to payment.
+                      </div>
+                    ) : (
+                      <>
+                        <p className="mt-2 text-sm text-slate-600">Upload the 6 required documents. Our fleet team reviews them within a few hours.</p>
+                        <Button onClick={() => navigate("/kyc?from=book")} className="mt-6 rounded-md bg-[#0A192F] text-white" data-testid="wizard-goto-kyc">
+                          Go to KYC upload <ChevronRight className="ml-1 h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </Card>
+                )}
+
+                {step === 4 && booking && (
+                  <Card className="rounded-lg border-slate-200 p-6">
+                    <h2 className="font-heading text-2xl text-[#0A192F]">Payment</h2>
+                    {user?.kyc_status !== "approved" ? (
+                      <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                        Please wait until your KYC is approved to pay. You can return here from <Link to="/dashboard" className="underline">My Bookings</Link>.
+                      </div>
+                    ) : (
+                      <div className="mt-6 grid gap-4 md:grid-cols-3">
+                        <PayOption
+                          title="Pay in full"
+                          amount={booking.total_amount}
+                          caption="Single payment, nothing to carry."
+                          onClick={() => pay("full")}
+                          testid="pay-full"
+                        />
+                        <PayOption
+                          title="Pay 20% now"
+                          amount={Math.round(booking.total_amount * 0.2)}
+                          caption={`Pay remaining ${formatINR(booking.total_amount - Math.round(booking.total_amount * 0.2))} at pickup.`}
+                          onClick={() => pay("partial")}
+                          testid="pay-partial"
+                          accent
+                        />
+                        <PayOption
+                          title="Pay At Site"
+                          amount={booking.total_amount}
+                          caption="Pay total amount when you pick up the vehicle."
+                          onClick={() => payAtSite()}
+                          testid="pay-site"
+                        />
+                      </div>
+                    )}
+                  </Card>
+                )}
+
+                {/* Footer nav */}
+                <div className="mt-6 flex items-center justify-between">
+                  <Button variant="outline" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0 || creating} className="rounded-md" data-testid="wizard-back-btn">
+                    Back
+                  </Button>
+                  {step < 4 && (
+                    <Button onClick={goNext} disabled={creating} className="rounded-md bg-[#0A192F] text-white hover:bg-[#0A192F]/90" data-testid="wizard-next-btn">
+                      {creating ? "Creating..." : step === 2 ? "Confirm booking" : "Continue"}
                     </Button>
-                  </>
-                )}
-              </Card>
-            )}
-
-            {step === 4 && booking && (
-              <Card className="rounded-lg border-slate-200 p-6">
-                <h2 className="font-heading text-2xl text-[#0A192F]">Payment</h2>
-                {user?.kyc_status !== "approved" ? (
-                  <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    Please wait until your KYC is approved to pay. You can return here from <Link to="/dashboard" className="underline">My Bookings</Link>.
-                  </div>
-                ) : (
-                  <div className="mt-6 grid gap-4 md:grid-cols-3">
-                    <PayOption
-                      title="Pay in full"
-                      amount={booking.total_amount}
-                      caption="Single payment, nothing to carry."
-                      onClick={() => pay("full")}
-                      testid="pay-full"
-                    />
-                    <PayOption
-                      title="Pay 20% now"
-                      amount={Math.round(booking.total_amount * 0.2)}
-                      caption={`Pay remaining ${formatINR(booking.total_amount - Math.round(booking.total_amount * 0.2))} at pickup.`}
-                      onClick={() => pay("partial")}
-                      testid="pay-partial"
-                      accent
-                    />
-                    <PayOption
-                      title="Pay At Site"
-                      amount={booking.total_amount}
-                      caption="Pay total amount when you pick up the vehicle."
-                      onClick={() => payAtSite()}
-                      testid="pay-site"
-                    />
-                  </div>
-                )}
-              </Card>
-            )}
-
-            {/* Footer nav */}
-            <div className="mt-6 flex items-center justify-between">
-              <Button variant="outline" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0 || creating} className="rounded-md" data-testid="wizard-back-btn">
-                Back
-              </Button>
-              {step < 4 && (
-                <Button onClick={goNext} disabled={creating} className="rounded-md bg-[#0A192F] text-white hover:bg-[#0A192F]/90" data-testid="wizard-next-btn">
-                  {creating ? "Creating..." : step === 2 ? "Confirm booking" : "Continue"}
-                </Button>
-              )}
-            </div>
+                  )}
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {/* Summary sidebar */}
