@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Crown, LayoutDashboard, LogOut, User } from "lucide-react";
+import { LayoutDashboard, LogOut, User } from "lucide-react";
+import royalCarsLogo from "../assets/royalcars.png";
 import { Button } from "./ui/button";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -24,10 +25,7 @@ export default function Navbar() {
     <header className="glass-nav sticky top-0 z-40">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link to="/" className="flex items-center gap-2" data-testid="brand-link">
-          <Crown className="h-6 w-6" style={{ color: "#D4AF37" }} />
-          <span className="font-heading text-2xl font-bold tracking-tight text-[#0A192F]">
-            Royal Cars
-          </span>
+          <img src={royalCarsLogo} alt="Royal Cars" className="h-12 w-auto object-contain rounded-2xl"/>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
