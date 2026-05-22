@@ -35,13 +35,25 @@ export default function BookingDetail() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/bookings/my`);
-      const found = data.find((b) => b.id === id);
+      const [bookingsRes, locationsRes] = await Promise.all([
+        api.get(`/bookings/my`),
+        api.get(`/locations`),
+      ]);
+      const found = bookingsRes.data.find((b) => b.id === id);
       if (!found) {
         toast.error("Booking not found");
         navigate("/dashboard");
         return;
       }
+      
+      // Resolve location IDs to names
+      const locations = locationsRes.data || [];
+      const pickupLoc = locations.find((l) => l.id === found.pickup_location_id);
+      const dropoffLoc = locations.find((l) => l.id === found.dropoff_location_id);
+      
+      found.pickup_location = pickupLoc ? pickupLoc.name : null;
+      found.dropoff_location = dropoffLoc ? dropoffLoc.name : null;
+
       setBooking(found);
     } catch (e) {
       toast.error("Failed to load booking");
