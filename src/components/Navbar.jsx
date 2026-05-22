@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { LayoutDashboard, LogOut, User } from "lucide-react";
+import { LayoutDashboard, LogOut, User, FileText } from "lucide-react";
 import royalCarsLogo from "../assets/royalcars.png";
 import { Button } from "./ui/button";
 import { useAuth } from "../context/AuthContext";
@@ -67,6 +67,9 @@ export default function Navbar() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/profile")} data-testid="menu-profile">
+                  <User className="mr-2 h-4 w-4" /> Profile
+                </DropdownMenuItem>
                 {user.role === "admin" ? (
                   <DropdownMenuItem onClick={() => navigate("/admin")} data-testid="menu-admin">
                     <LayoutDashboard className="mr-2 h-4 w-4" /> Admin Dashboard
@@ -77,7 +80,7 @@ export default function Navbar() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => navigate("/kyc")} data-testid="menu-kyc">
-                  <User className="mr-2 h-4 w-4" /> KYC Documents
+                  <FileText className="mr-2 h-4 w-4" /> KYC Documents
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} data-testid="menu-logout">

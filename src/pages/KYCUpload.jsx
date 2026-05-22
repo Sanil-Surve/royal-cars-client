@@ -10,12 +10,12 @@ import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
 const DOCS = [
-  { key: "dl_front", label: "Driving License — Front" },
-  { key: "dl_back", label: "Driving License — Back" },
-  { key: "aadhar_front", label: "Aadhar — Front" },
-  { key: "aadhar_back", label: "Aadhar — Back" },
-  { key: "rent_agreement", label: "Rent Agreement" },
-  { key: "light_bill", label: "Electricity / Light Bill" },
+  { key: "dl_front", label: "Driving License — Front", required: true },
+  { key: "dl_back", label: "Driving License — Back", required: true },
+  { key: "aadhar_front", label: "Aadhar — Front", required: true },
+  { key: "aadhar_back", label: "Aadhar — Back", required: true },
+  { key: "rent_agreement", label: "Rent Agreement", required: false },
+  { key: "light_bill", label: "Electricity / Light Bill", required: false },
 ];
 
 export default function KYCUpload() {
@@ -57,7 +57,7 @@ export default function KYCUpload() {
     }
   };
 
-  const allUploaded = DOCS.every((d) => docFor(d.key));
+  const allUploaded = DOCS.filter((d) => d.required).every((d) => docFor(d.key));
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -82,7 +82,7 @@ export default function KYCUpload() {
           <Link to="/dashboard" className="text-sm text-slate-600 underline" data-testid="kyc-back-link">Back to dashboard</Link>
           {sp.get("from") === "book" && (
             <Button onClick={() => navigate("/dashboard")} disabled={!allUploaded} className="rounded-md bg-[#0A192F] text-white" data-testid="kyc-done-btn">
-              {allUploaded ? "I'm done — go to bookings" : `Upload all ${DOCS.length} documents`}
+              {allUploaded ? "I'm done — go to bookings" : "Upload all required documents"}
             </Button>
           )}
         </div>
@@ -107,6 +107,11 @@ function DocCard({ doc, existing, uploading, onFile }) {
         <div>
           <div className="flex items-center gap-2 font-heading text-base text-[#0A192F]">
             <FileText className="h-4 w-4 text-slate-500" /> {doc.label}
+            {!doc.required && (
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 bg-slate-100 px-2 py-0.5 rounded ml-2">
+                Optional
+              </span>
+            )}
           </div>
           {existing && (
             <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">

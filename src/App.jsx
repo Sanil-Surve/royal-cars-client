@@ -14,6 +14,7 @@ import BookingWizard from "@/pages/BookingWizard";
 import KYCUpload from "@/pages/KYCUpload";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import BookingDetail from "@/pages/BookingDetail";
+import Profile from "@/pages/Profile";
 
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminVehicles from "@/pages/AdminVehicles";
@@ -38,6 +39,7 @@ function App() {
             <Route path="/kyc" element={<ProtectedRoute><KYCUpload /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><CustomerDashboard /></ProtectedRoute>} />
             <Route path="/bookings/:id" element={<ProtectedRoute><BookingDetail /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
             <Route path="/admin" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>}>
               <Route index element={<AdminDashboard />} />
