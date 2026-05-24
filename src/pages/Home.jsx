@@ -31,6 +31,9 @@ export default function Home() {
   const navigate = useNavigate();
   const carouselRef = useRef(null);
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
   const scroll = (direction) => {
     if (carouselRef.current) {
       const { scrollLeft, clientWidth } = carouselRef.current;
@@ -142,11 +145,31 @@ export default function Home() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs uppercase tracking-widest text-slate-500">Pickup date</label>
-                  <Input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="h-11 rounded-md" data-testid="home-pickup-date" />
+                  <Input 
+                    type="date" 
+                    value={pickupDate} 
+                    min={todayStr}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setPickupDate(val);
+                      if (dropoffDate && val && val > dropoffDate) {
+                        setDropoffDate("");
+                      }
+                    }} 
+                    className="h-11 rounded-md" 
+                    data-testid="home-pickup-date" 
+                  />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs uppercase tracking-widest text-slate-500">Drop-off date</label>
-                  <Input type="date" value={dropoffDate} onChange={(e) => setDropoffDate(e.target.value)} className="h-11 rounded-md" data-testid="home-dropoff-date" />
+                  <Input 
+                    type="date" 
+                    value={dropoffDate} 
+                    min={pickupDate || todayStr}
+                    onChange={(e) => setDropoffDate(e.target.value)} 
+                    className="h-11 rounded-md" 
+                    data-testid="home-dropoff-date" 
+                  />
                 </div>
                 <div className="md:col-span-5 flex justify-end">
                   <Button type="submit" className="h-11 rounded-md bg-[#0A192F] px-8 text-white hover:bg-[#0A192F]/90" data-testid="home-search-btn">

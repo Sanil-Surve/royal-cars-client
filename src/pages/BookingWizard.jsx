@@ -47,6 +47,9 @@ export default function BookingWizard() {
   const [sp] = useSearchParams();
 
   const vehicleId = sp.get("vehicleId") || "";
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const [step, setStep] = useState(0);
   const [locations, setLocations] = useState([]);
   const [vehicle, setVehicle] = useState(null);
@@ -235,11 +238,31 @@ export default function BookingWizard() {
                     <div className="mt-6 grid gap-4 md:grid-cols-2">
                       <div>
                         <label className="text-xs uppercase tracking-widest text-slate-500">Pickup date</label>
-                        <Input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="mt-1 h-11 rounded-md" data-testid="book-pickup-date" />
+                        <Input 
+                          type="date" 
+                          value={pickupDate} 
+                          min={todayStr}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setPickupDate(val);
+                            if (dropoffDate && val && val > dropoffDate) {
+                              setDropoffDate("");
+                            }
+                          }} 
+                          className="mt-1 h-11 rounded-md" 
+                          data-testid="book-pickup-date" 
+                        />
                       </div>
                       <div>
                         <label className="text-xs uppercase tracking-widest text-slate-500">Drop-off date</label>
-                        <Input type="date" value={dropoffDate} onChange={(e) => setDropoffDate(e.target.value)} className="mt-1 h-11 rounded-md" data-testid="book-dropoff-date" />
+                        <Input 
+                          type="date" 
+                          value={dropoffDate} 
+                          min={pickupDate || todayStr}
+                          onChange={(e) => setDropoffDate(e.target.value)} 
+                          className="mt-1 h-11 rounded-md" 
+                          data-testid="book-dropoff-date" 
+                        />
                       </div>
                       <div className="md:col-span-2">
                         <label className="text-xs uppercase tracking-widest text-slate-500">Pickup &amp; drop-off time</label>
