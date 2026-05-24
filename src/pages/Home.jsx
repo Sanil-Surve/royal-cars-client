@@ -365,9 +365,9 @@ export default function Home() {
             <div>
               <h3 className="text-white font-semibold uppercase tracking-wider text-xs">Contact Us</h3>
               <div className="mt-4 flex flex-col gap-2 md:items-start items-center">
-                <p className="text-white/80 font-medium">Sagar Putharan</p>
-                <a href="mailto:Puthran999.spk@gmail.com" className="hover:text-[#D4AF37] transition">
-                  Puthran999.spk@gmail.com
+                <p className="text-white/80 font-medium">Royal Cars</p>
+                <a href="mailto:royalcarskharghar@gmail.com" className="hover:text-[#D4AF37] transition">
+                  royalcarskharghar@gmail.com
                 </a>
                 <a href="tel:+919892805777" className="hover:text-[#D4AF37] transition">
                   +91 98928 05777
