@@ -20,6 +20,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import AdminVehicles from "@/pages/AdminVehicles";
 import AdminKYC from "@/pages/AdminKYC";
 import AdminBookings from "@/pages/AdminBookings";
+import AdminBookingDetail from "@/pages/AdminBookingDetail";
 import AdminCustomers from "@/pages/AdminCustomers";
 import AdminLocations from "@/pages/AdminLocations";
 import AdminPayments from "@/pages/AdminPayments";
@@ -46,6 +47,7 @@ function App() {
               <Route path="vehicles" element={<AdminVehicles />} />
               <Route path="kyc" element={<AdminKYC />} />
               <Route path="bookings" element={<AdminBookings />} />
+              <Route path="bookings/:id" element={<AdminBookingDetail />} />
               <Route path="customers" element={<AdminCustomers />} />
               <Route path="locations" element={<AdminLocations />} />
               <Route path="payments" element={<AdminPayments />} />
