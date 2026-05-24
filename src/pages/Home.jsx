@@ -83,7 +83,7 @@ export default function Home() {
           className="absolute inset-0"
           style={{
             backgroundImage:
-              'url(https://images.unsplash.com/photo-1767800890927-aebbe5540d61?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzh8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjBjYXIlMjBzaG93cm9vbSUyMGRhcmt8ZW58MHx8fHwxNzc2NzY1MTYwfDA&ixlib=rb-4.1.0&q=85)',
+              'url(hatchbag.jpg)',
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
