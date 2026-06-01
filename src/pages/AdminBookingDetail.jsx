@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Car,
+  Camera,
   Download,
   Mail,
   Phone,
@@ -502,6 +503,89 @@ export default function AdminBookingDetail() {
                 </div>
               </div>
             </Card>
+
+            {/* ── Ride Condition Photos ── */}
+            {(booking.pickup_photos?.length > 0 || booking.return_photos?.length > 0) && (
+              <Card className="rounded-xl border-slate-200 bg-white p-5 shadow-sm">
+                <h2 className="mb-5 font-heading text-base font-semibold text-[#0A192F] flex items-center gap-2">
+                  <Camera className="h-4 w-4 text-slate-500" />
+                  Ride Condition Photos
+                </h2>
+
+                <div className="space-y-5">
+                  {/* Pickup Photos */}
+                  {booking.pickup_photos?.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                        Pickup Condition ({booking.pickup_photos.length} photos)
+                      </p>
+                      {booking.pickup_notes && (
+                        <p className="mb-2 text-xs text-slate-500 italic">{booking.pickup_notes}</p>
+                      )}
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                        {booking.pickup_photos.map((url, idx) => (
+                          <a
+                            key={idx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100 transition-all hover:shadow-md hover:ring-2 hover:ring-emerald-300"
+                          >
+                            <img
+                              src={url}
+                              alt={`Pickup condition ${idx + 1}`}
+                              className="h-full w-full object-cover transition-transform group-hover:scale-110"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                            <span className="absolute bottom-1 left-1 rounded bg-emerald-600/80 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                              Pickup
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Divider between pickup and return */}
+                  {booking.pickup_photos?.length > 0 && booking.return_photos?.length > 0 && (
+                    <div className="border-t border-slate-100" />
+                  )}
+
+                  {/* Return Photos */}
+                  {booking.return_photos?.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                        Return Condition ({booking.return_photos.length} photos)
+                      </p>
+                      {booking.return_notes && (
+                        <p className="mb-2 text-xs text-slate-500 italic">{booking.return_notes}</p>
+                      )}
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                        {booking.return_photos.map((url, idx) => (
+                          <a
+                            key={idx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100 transition-all hover:shadow-md hover:ring-2 hover:ring-red-300"
+                          >
+                            <img
+                              src={url}
+                              alt={`Return condition ${idx + 1}`}
+                              className="h-full w-full object-cover transition-transform group-hover:scale-110"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                            <span className="absolute bottom-1 left-1 rounded bg-red-600/80 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                              Return
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
 
             {/* ── Sidebar cards rendered inline on mobile (below Trip Details) ── */}
             <div className="space-y-5 lg:hidden">
