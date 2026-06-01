@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Crown } from "lucide-react";
+import { Crown, Eye, EyeOff } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card } from "../components/ui/card";
@@ -11,6 +11,7 @@ export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -56,7 +57,26 @@ export default function Register() {
             </div>
             <div>
               <label className="text-xs uppercase tracking-widest text-slate-500">Password</label>
-              <Input value={form.password} onChange={set("password")} type="password" required minLength={6} className="mt-1 h-11 rounded-md" data-testid="register-password-input" />
+              <div className="relative mt-1">
+                <Input
+                  value={form.password}
+                  onChange={set("password")}
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  className="h-11 rounded-md pr-10"
+                  data-testid="register-password-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800 focus:outline-none transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  data-testid="register-password-toggle-btn"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
             {error && <div className="rounded-md bg-red-50 p-2 text-sm text-red-600" data-testid="register-error">{error}</div>}
             <Button type="submit" disabled={loading} className="h-11 w-full rounded-md bg-[#0A192F] text-white hover:bg-[#0A192F]/90" data-testid="register-submit-btn">
