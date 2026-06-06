@@ -69,7 +69,16 @@ export default function Login() {
               <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required className="mt-1 h-11 rounded-md" data-testid="login-email-input" />
             </div>
             <div>
-              <label className="text-xs uppercase tracking-widest text-slate-500">Password</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs uppercase tracking-widest text-slate-500">Password</label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-slate-500 hover:text-[#0A192F] underline decoration-[#D4AF37] underline-offset-2 transition-colors"
+                  data-testid="login-forgot-password-link"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative mt-1">
                 <Input
                   value={password}

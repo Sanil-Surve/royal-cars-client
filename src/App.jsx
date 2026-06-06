@@ -9,6 +9,8 @@ import AdminLayout from "@/components/AdminLayout";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import Vehicles from "@/pages/Vehicles";
 import BookingWizard from "@/pages/BookingWizard";
 import KYCUpload from "@/pages/KYCUpload";
@@ -36,6 +38,8 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/vehicles" element={<Vehicles />} />
             <Route path="/book" element={<BookingWizard />} />
             <Route path="/kyc" element={<ProtectedRoute><KYCUpload /></ProtectedRoute>} />

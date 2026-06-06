@@ -9,7 +9,7 @@ export const api = axios.create({
 });
 
 // Endpoints we don't want to redirect on 401 — probing calls
-const AUTH_401_SAFE = ["/auth/me", "/auth/login", "/auth/register", "/auth/refresh"];
+const AUTH_401_SAFE = ["/auth/me", "/auth/login", "/auth/register", "/auth/refresh", "/auth/forgot-password", "/auth/reset-password"];
 
 // Single-flight refresh: concurrent 401s share one refresh call
 let refreshPromise = null;
