@@ -15,6 +15,7 @@ const EMPTY = {
   name: "", type: "SUV", fuel_type: "Petrol", image_urls: [],
   price_per_24hrs: 0, deposit_amount: 0, overtime_rate_per_hour: 0, is_available: true,
   location_id: "", description: "", seats: 5, transmission: "Manual",
+  vehicle_number: "",
 };
 
 export default function AdminVehicles() {
@@ -144,6 +145,7 @@ export default function AdminVehicles() {
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Name"><Input value={form.name} onChange={(e) => set("name", e.target.value)} data-testid="vehicle-name-input" /></Field>
+            <Field label="Number Plate"><Input value={form.vehicle_number || ""} onChange={(e) => set("vehicle_number", e.target.value.toUpperCase())} placeholder="e.g. MH12AB1234" data-testid="vehicle-number-input" /></Field>
             <Field label="Type">
               <Select value={form.type} onValueChange={(v) => set("type", v)}>
                 <SelectTrigger data-testid="vehicle-type-select"><SelectValue /></SelectTrigger>

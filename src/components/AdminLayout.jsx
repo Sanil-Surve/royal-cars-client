@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Car, FileCheck2, CalendarCheck, Users, MapPin, CreditCard, Crown, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, Car, FileCheck2, CalendarCheck, Users, MapPin, CreditCard, Crown, LogOut, Menu, Ticket, BarChart3 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -13,6 +13,8 @@ const NAV = [
   { to: "/admin/customers", icon: Users, label: "Customers", id: "admin-nav-customers" },
   { to: "/admin/locations", icon: MapPin, label: "Locations", id: "admin-nav-locations" },
   { to: "/admin/payments", icon: CreditCard, label: "Payments", id: "admin-nav-payments" },
+  { to: "/admin/coupons", icon: Ticket, label: "Coupons", id: "admin-nav-coupons" },
+  { to: "/admin/analytics", icon: BarChart3, label: "Analytics", id: "admin-nav-analytics" },
 ];
 
 export default function AdminLayout() {

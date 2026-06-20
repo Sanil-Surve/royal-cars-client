@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { Check, ChevronRight, ShieldCheck } from "lucide-react";
+import { Check, ChevronRight, ShieldCheck, Tag, X, Loader2, ChevronDown, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import { Card } from "../components/ui/card";
@@ -41,6 +41,36 @@ function isWithinBusinessHours(t) {
   return mins >= 5 * 60 && mins <= 23 * 60;
 }
 
+// Discount Summary Row component
+function SummaryRow({ label, value, isDiscount, isTotal, isTax, highlight }) {
+  return (
+    <div
+      className={`flex justify-between py-1.5 text-sm ${isTotal
+        ? "border-t border-slate-200 pt-2.5 mt-1 font-heading text-base font-bold text-[#0A192F]"
+        : highlight
+          ? "font-semibold text-[#0A192F]"
+          : "text-slate-600"
+        }`}
+    >
+      <span>{label}</span>
+      <span className={isDiscount ? "text-emerald-600 font-semibold" : isTax ? "text-slate-700" : ""}>
+        {isDiscount && value > 0 ? `−${formatINR(value)}` : formatINR(value)}
+      </span>
+    </div>
+  );
+}
+
+// Discount badge chip
+function DiscountChip({ label, pct }) {
+  if (!pct) return null;
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+      <Tag className="h-3 w-3" />
+      {label} ({pct}% off)
+    </span>
+  );
+}
+
 export default function BookingWizard() {
   const { user, refreshMe } = useAuth();
   const navigate = useNavigate();
@@ -61,6 +91,14 @@ export default function BookingWizard() {
   const [dropoffDate, setDropoffDate] = useState(sp.get("dropoffDate") || "");
   const [booking, setBooking] = useState(null);
   const [creating, setCreating] = useState(false);
+
+  // Discount state
+  const [pricing, setPricing] = useState(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponApplied, setCouponApplied] = useState(null); // { code, discount }
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
 
   // Pickup time and drop-off time are the same (24-hour block rentals)
   const pickupTime = bookingTime;
@@ -96,7 +134,76 @@ export default function BookingWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const pricing = useMemo(() => {
+  // Fetch pricing breakdown whenever vehicle/dates change (and user is logged in)
+  const fetchPricing = useCallback(async (withCoupon = null) => {
+    if (!vehicle || !pickupDate || !dropoffDate || !user) return;
+    const p = new Date(`${pickupDate}T${pickupTime}`);
+    const d = new Date(`${dropoffDate}T${dropoffTime}`);
+    if (d <= p) return;
+
+    setPricingLoading(true);
+    try {
+      if (withCoupon) {
+        const { data } = await api.post("/bookings/apply-coupon", {
+          vehicle_id: vehicle.id,
+          pickup_date: pickupDate,
+          pickup_time: pickupTime,
+          dropoff_date: dropoffDate,
+          dropoff_time: dropoffTime,
+          coupon_code: withCoupon,
+        });
+        setPricing(data);
+        setCouponApplied({ code: withCoupon, discount: data.coupon_discount });
+        setCouponError("");
+      } else {
+        const { data } = await api.post("/bookings/calculate", {
+          vehicle_id: vehicle.id,
+          pickup_date: pickupDate,
+          pickup_time: pickupTime,
+          dropoff_date: dropoffDate,
+          dropoff_time: dropoffTime,
+        });
+        setPricing(data);
+        // preserve applied coupon if any
+        if (couponApplied) {
+          setCouponApplied(null); // reset if dates changed
+        }
+      }
+    } catch {
+      // fall back to client-side calculation
+      const hrs = Math.max((d - p) / 36e5, 24);
+      const days = Math.max(1, Math.ceil(hrs / 24));
+      const rent = vehicle.price_per_24hrs * days;
+      setPricing({
+        rental_days: days,
+        rental_amount: rent,
+        long_term_discount: 0,
+        long_term_discount_pct: 0,
+        first_booking_discount: 0,
+        first_booking_discount_pct: 0,
+        coupon_discount: 0,
+        taxable_amount: rent,
+        tax_amount: rent * 0.18,
+        tax_rate_pct: 18,
+        final_amount: rent * 1.18,
+        deposit_amount: vehicle.deposit_amount,
+        total_payable: rent * 1.18 + vehicle.deposit_amount,
+      });
+    } finally {
+      setPricingLoading(false);
+    }
+  }, [vehicle, pickupDate, pickupTime, dropoffDate, dropoffTime, user]);
+
+  // Refetch pricing when dates change
+  useEffect(() => {
+    if (step === 2 && user) {
+      fetchPricing(couponApplied?.code || null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, pickupDate, dropoffDate, bookingTime, vehicle, user]);
+
+  // Fallback client-side pricing (pre-login or pre-step-2)
+  const clientPricing = useMemo(() => {
     if (!vehicle || !pickupDate || !dropoffDate) return null;
     const p = new Date(`${pickupDate}T${pickupTime}`);
     const d = new Date(`${dropoffDate}T${dropoffTime}`);
@@ -106,6 +213,32 @@ export default function BookingWizard() {
     const deposit = vehicle.deposit_amount;
     return { days, rent, deposit, total: rent + deposit };
   }, [vehicle, pickupDate, pickupTime, dropoffDate, dropoffTime]);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponError("");
+    try {
+      await fetchPricing(couponCode.trim().toUpperCase());
+      toast.success(`Coupon "${couponCode.toUpperCase()}" applied!`);
+    } catch (e) {
+      const msg = e.response?.data?.detail || "Invalid coupon code";
+      setCouponError(msg);
+      toast.error(msg);
+      // Re-fetch without coupon to reset
+      await fetchPricing(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = async () => {
+    setCouponCode("");
+    setCouponApplied(null);
+    setCouponError("");
+    await fetchPricing(null);
+    toast.info("Coupon removed");
+  };
 
   const goNext = async () => {
     if (step === 0) {
@@ -129,7 +262,8 @@ export default function BookingWizard() {
       if (!vehicle) return;
       setCreating(true);
       try {
-        const { data } = await api.post("/bookings", {
+        // Use the new /bookings/create endpoint which handles discounts
+        const { data } = await api.post("/bookings/create", {
           vehicle_id: vehicle.id,
           pickup_location_id: pickup,
           dropoff_location_id: dropoff,
@@ -137,6 +271,7 @@ export default function BookingWizard() {
           pickup_time: pickupTime,
           dropoff_date: dropoffDate,
           dropoff_time: dropoffTime,
+          coupon_code: couponApplied?.code || null,
         });
         setBooking(data);
         await refreshMe();
@@ -177,6 +312,29 @@ export default function BookingWizard() {
     );
   }
 
+  // Active pricing: server pricing (with discounts) when available, else client estimate
+  const activePricing = pricing || (clientPricing ? {
+    rental_days: clientPricing.days,
+    rental_amount: clientPricing.rent,
+    long_term_discount: 0,
+    long_term_discount_pct: 0,
+    first_booking_discount: 0,
+    first_booking_discount_pct: 0,
+    coupon_discount: 0,
+    taxable_amount: clientPricing.rent,
+    tax_amount: clientPricing.rent * 0.18,
+    tax_rate_pct: 18,
+    final_amount: clientPricing.rent * 1.18,
+    deposit_amount: clientPricing.deposit,
+    total_payable: clientPricing.total,
+  } : null);
+
+  const hasPricingDiscounts = activePricing && (
+    activePricing.long_term_discount > 0 ||
+    activePricing.first_booking_discount > 0 ||
+    activePricing.coupon_discount > 0
+  );
+
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       <Navbar />
@@ -194,7 +352,7 @@ export default function BookingWizard() {
           ))}
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+        <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
           {/* Main */}
           <div>
             <AnimatePresence mode="wait">
@@ -238,9 +396,9 @@ export default function BookingWizard() {
                     <div className="mt-6 grid gap-4 md:grid-cols-2">
                       <div>
                         <label className="text-xs uppercase tracking-widest text-slate-500">Pickup date</label>
-                        <Input 
-                          type="date" 
-                          value={pickupDate} 
+                        <Input
+                          type="date"
+                          value={pickupDate}
                           min={todayStr}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -248,20 +406,20 @@ export default function BookingWizard() {
                             if (dropoffDate && val && val > dropoffDate) {
                               setDropoffDate("");
                             }
-                          }} 
-                          className="mt-1 h-11 rounded-md" 
-                          data-testid="book-pickup-date" 
+                          }}
+                          className="mt-1 h-11 rounded-md"
+                          data-testid="book-pickup-date"
                         />
                       </div>
                       <div>
                         <label className="text-xs uppercase tracking-widest text-slate-500">Drop-off date</label>
-                        <Input 
-                          type="date" 
-                          value={dropoffDate} 
+                        <Input
+                          type="date"
+                          value={dropoffDate}
                           min={pickupDate || todayStr}
-                          onChange={(e) => setDropoffDate(e.target.value)} 
-                          className="mt-1 h-11 rounded-md" 
-                          data-testid="book-dropoff-date" 
+                          onChange={(e) => setDropoffDate(e.target.value)}
+                          className="mt-1 h-11 rounded-md"
+                          data-testid="book-dropoff-date"
                         />
                       </div>
                       <div className="md:col-span-2">
@@ -283,26 +441,117 @@ export default function BookingWizard() {
                   </Card>
                 )}
 
-                {step === 2 && pricing && (
+                {step === 2 && (activePricing || clientPricing) && (
                   <Card className="rounded-lg border-slate-200 p-6">
                     <h2 className="font-heading text-2xl text-[#0A192F]">Review & confirm</h2>
                     <div className="mt-6 grid gap-4 sm:grid-cols-2">
                       <InfoRow label="Vehicle" value={vehicle.name} />
-                      <InfoRow label="Duration" value={`${pricing.days} day${pricing.days > 1 ? "s" : ""}`} />
+                      <InfoRow label="Duration" value={`${activePricing?.rental_days || clientPricing?.days} day${(activePricing?.rental_days || clientPricing?.days) > 1 ? "s" : ""}`} />
                       <InfoRow label="Pickup" value={`${locations.find(l => l.id === pickup)?.name || "-"} · ${pickupDate} ${pickupTime}`} />
                       <InfoRow label="Drop-off" value={`${locations.find(l => l.id === dropoff)?.name || "-"} · ${dropoffDate} ${dropoffTime}`} />
                     </div>
-                    <div className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">
-                      <div className="flex justify-between py-1"><span className="text-slate-600">Rent ({pricing.days} × {formatINR(vehicle.price_per_24hrs)})</span><span>{formatINR(pricing.rent)}</span></div>
-                      <div className="flex justify-between py-1"><span className="text-slate-600">Refundable deposit</span><span>{formatINR(pricing.deposit)}</span></div>
-                      {vehicle.overtime_rate_per_hour ? (
-                        <div className="flex justify-between py-1 text-xs text-slate-500"><span>Overtime (beyond drop-off)</span><span>{formatINR(vehicle.overtime_rate_per_hour)}/hr</span></div>
+
+                    {/* Discount chips */}
+                    {activePricing && hasPricingDiscounts && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {activePricing.long_term_discount > 0 && (
+                          <DiscountChip label="Long-term" pct={activePricing.long_term_discount_pct} />
+                        )}
+                        {activePricing.first_booking_discount > 0 && (
+                          <DiscountChip label="First booking" pct={activePricing.first_booking_discount_pct} />
+                        )}
+                        {activePricing.coupon_discount > 0 && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                            <Tag className="h-3 w-3" /> Coupon: {activePricing.applied_coupon_code}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Pricing breakdown */}
+                    <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 relative">
+                      {pricingLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/70 z-10">
+                          <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                        </div>
+                      )}
+                      {activePricing ? (
+                        <>
+                          <SummaryRow label={`Rental amount (${activePricing.rental_days}d × ${formatINR(vehicle.price_per_24hrs)})`} value={activePricing.rental_amount} />
+                          {activePricing.long_term_discount > 0 && (
+                            <SummaryRow label={`Long-term discount (${activePricing.long_term_discount_pct}%)`} value={activePricing.long_term_discount} isDiscount />
+                          )}
+                          {activePricing.first_booking_discount > 0 && (
+                            <SummaryRow label={`First booking discount (${activePricing.first_booking_discount_pct}%)`} value={activePricing.first_booking_discount} isDiscount />
+                          )}
+                          {activePricing.coupon_discount > 0 && (
+                            <SummaryRow label={`Coupon discount (${activePricing.applied_coupon_code})`} value={activePricing.coupon_discount} isDiscount />
+                          )}
+                          <SummaryRow label={`GST (${activePricing.tax_rate_pct}%)`} value={activePricing.tax_amount} isTax />
+                          <SummaryRow label="Rental total" value={activePricing.final_amount} highlight />
+                          <SummaryRow label="Refundable deposit" value={activePricing.deposit_amount} />
+                          <SummaryRow label="Total payable" value={activePricing.total_payable} isTotal />
+                        </>
+                      ) : clientPricing ? (
+                        <>
+                          <SummaryRow label={`Rent (${clientPricing.days} × ${formatINR(vehicle.price_per_24hrs)})`} value={clientPricing.rent} />
+                          <SummaryRow label="Refundable deposit" value={clientPricing.deposit} />
+                          <SummaryRow label="Total" value={clientPricing.total} isTotal />
+                          <p className="mt-2 text-xs text-slate-400 flex items-center gap-1">
+                            <Info className="h-3 w-3" /> Sign in to see personalized discounts & tax breakdown.
+                          </p>
+                        </>
                       ) : null}
-                      <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 font-heading text-lg text-[#0A192F]"><span>Total</span><span data-testid="summary-total">{formatINR(pricing.total)}</span></div>
                     </div>
+
+                    {/* Coupon input */}
+                    {user && (
+                      <div className="mt-4">
+                        <label className="text-xs uppercase tracking-widest text-slate-500 mb-1.5 block">Have a coupon code?</label>
+                        {couponApplied ? (
+                          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                            <Tag className="h-4 w-4 text-emerald-600 shrink-0" />
+                            <span className="text-sm font-semibold text-emerald-700 flex-1">
+                              {couponApplied.code} applied — saved {formatINR(couponApplied.discount)}
+                            </span>
+                            <button
+                              onClick={handleRemoveCoupon}
+                              className="text-slate-400 hover:text-red-500 transition"
+                              title="Remove coupon"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Input
+                              value={couponCode}
+                              onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(""); }}
+                              placeholder="e.g. SAVE10"
+                              className={`flex-1 uppercase font-mono ${couponError ? "border-red-300 focus:ring-red-200" : ""}`}
+                              onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                              data-testid="coupon-input"
+                            />
+                            <Button
+                              onClick={handleApplyCoupon}
+                              disabled={couponLoading || !couponCode.trim()}
+                              variant="outline"
+                              className="rounded-md border-[#0A192F] text-[#0A192F] hover:bg-[#0A192F] hover:text-white transition"
+                              data-testid="apply-coupon-btn"
+                            >
+                              {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                            </Button>
+                          </div>
+                        )}
+                        {couponError && (
+                          <p className="mt-1.5 text-xs text-red-500">{couponError}</p>
+                        )}
+                      </div>
+                    )}
+
                     {!user && (
                       <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                        You'll need to <Link to="/login" className="underline">sign in</Link> to confirm this booking.
+                        You'll need to <Link to="/login" className="underline">sign in</Link> to confirm this booking and see personalized discounts.
                       </div>
                     )}
                   </Card>
@@ -392,13 +641,59 @@ export default function BookingWizard() {
                   <div className="text-xs text-slate-500">{vehicle.type} · {vehicle.fuel_type}</div>
                 </div>
               </div>
-              {pricing && (
-                <div className="mt-5 space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-slate-600">Rent ({pricing.days}d)</span><span>{formatINR(pricing.rent)}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-600">Deposit</span><span>{formatINR(pricing.deposit)}</span></div>
-                  <div className="flex justify-between border-t border-slate-200 pt-2 font-heading text-base text-[#0A192F]"><span>Total</span><span>{formatINR(pricing.total)}</span></div>
+              {activePricing ? (
+                <div className="mt-5 space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Rental ({activePricing.rental_days}d)</span>
+                    <span>{formatINR(activePricing.rental_amount)}</span>
+                  </div>
+                  {activePricing.long_term_discount > 0 && (
+                    <div className="flex justify-between text-emerald-600">
+                      <span>Long-term discount</span>
+                      <span>−{formatINR(activePricing.long_term_discount)}</span>
+                    </div>
+                  )}
+                  {activePricing.first_booking_discount > 0 && (
+                    <div className="flex justify-between text-emerald-600">
+                      <span>First booking</span>
+                      <span>−{formatINR(activePricing.first_booking_discount)}</span>
+                    </div>
+                  )}
+                  {activePricing.coupon_discount > 0 && (
+                    <div className="flex justify-between text-emerald-600">
+                      <span>Coupon ({activePricing.applied_coupon_code})</span>
+                      <span>−{formatINR(activePricing.coupon_discount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-slate-500 text-xs">
+                    <span>GST ({activePricing.tax_rate_pct}%)</span>
+                    <span>+{formatINR(activePricing.tax_amount)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Deposit</span>
+                    <span>{formatINR(activePricing.deposit_amount)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-slate-200 pt-2 font-heading text-base text-[#0A192F]">
+                    <span>Total</span>
+                    <span data-testid="summary-total">{formatINR(activePricing.total_payable)}</span>
+                  </div>
+                  {hasPricingDiscounts && (
+                    <div className="mt-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2 text-xs text-emerald-700 font-semibold text-center">
+                      You save {formatINR(
+                        (activePricing.long_term_discount || 0) +
+                        (activePricing.first_booking_discount || 0) +
+                        (activePricing.coupon_discount || 0)
+                      )} on this booking! 🎉
+                    </div>
+                  )}
                 </div>
-              )}
+              ) : clientPricing ? (
+                <div className="mt-5 space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-slate-600">Rent ({clientPricing.days}d)</span><span>{formatINR(clientPricing.rent)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-600">Deposit</span><span>{formatINR(clientPricing.deposit)}</span></div>
+                  <div className="flex justify-between border-t border-slate-200 pt-2 font-heading text-base text-[#0A192F]"><span>Total</span><span>{formatINR(clientPricing.total)}</span></div>
+                </div>
+              ) : null}
             </Card>
           </aside>
         </div>

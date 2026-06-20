@@ -27,6 +27,8 @@ import AdminCustomers from "@/pages/AdminCustomers";
 import AdminCustomerDetail from "@/pages/AdminCustomerDetail";
 import AdminLocations from "@/pages/AdminLocations";
 import AdminPayments from "@/pages/AdminPayments";
+import AdminCoupons from "@/pages/AdminCoupons";
+import AdminAnalytics from "@/pages/AdminAnalytics";
 
 function App() {
   return (
@@ -57,6 +59,8 @@ function App() {
               <Route path="customers/:id" element={<AdminCustomerDetail />} />
               <Route path="locations" element={<AdminLocations />} />
               <Route path="payments" element={<AdminPayments />} />
+              <Route path="coupons" element={<AdminCoupons />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
