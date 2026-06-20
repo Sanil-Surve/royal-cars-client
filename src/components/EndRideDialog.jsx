@@ -4,12 +4,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { api, formatApiErrorDetail, formatINR } from "../lib/api";
 import { toast } from "sonner";
 
-const FUEL_LEVELS = ["Full", "3/4", "1/2", "1/4", "Empty"];
 const MAX_PHOTOS = 10;
+
+function fuelColor(pct) {
+  if (pct >= 60) return "#22c55e";
+  if (pct >= 30) return "#f59e0b";
+  return "#ef4444";
+}
 
 function getElapsedTime(startIso) {
   if (!startIso) return "—";
@@ -33,14 +37,16 @@ function isOvertime(booking) {
 
 export default function EndRideDialog({ booking, open, onOpenChange, onSuccess }) {
   const [odometer, setOdometer] = useState("");
-  const [fuelLevel, setFuelLevel] = useState("Full");
+  const [fuelLevel, setFuelLevel] = useState(100); // numeric 0-100
   const [notes, setNotes] = useState("");
   const [extraCharges, setExtraCharges] = useState("0");
   const [extraReason, setExtraReason] = useState("");
   const [photos, setPhotos] = useState([]); // { file, preview, url, uploading, error }
+  const [odometerPhoto, setOdometerPhoto] = useState(null); // { file, preview, url, uploading, error }
   const [loading, setLoading] = useState(false);
   const [overtime, setOvertime] = useState(false);
   const fileInputRef = useRef(null);
+  const odometerInputRef = useRef(null);
 
   useEffect(() => {
     if (booking) {
@@ -114,7 +120,30 @@ export default function EndRideDialog({ booking, open, onOpenChange, onSuccess }
     e.stopPropagation();
   };
 
-  const anyUploading = photos.some((p) => p.uploading);
+  // ── Odometer photo helpers ─────────────────────────────────────────────────
+  const handleOdometerPhoto = async (file) => {
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    setOdometerPhoto({ file, preview, url: null, uploading: true, error: false });
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const { data } = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setOdometerPhoto((prev) => ({ ...prev, url: data.url, uploading: false }));
+    } catch {
+      setOdometerPhoto((prev) => ({ ...prev, uploading: false, error: true }));
+      toast.error("Failed to upload odometer photo");
+    }
+  };
+
+  const removeOdometerPhoto = () => {
+    if (odometerPhoto?.preview) URL.revokeObjectURL(odometerPhoto.preview);
+    setOdometerPhoto(null);
+  };
+
+  const anyUploading = photos.some((p) => p.uploading) || odometerPhoto?.uploading;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -135,8 +164,9 @@ export default function EndRideDialog({ booking, open, onOpenChange, onSuccess }
       const photoUrls = photos.filter((p) => p.url).map((p) => p.url);
       const result = await api.post(`/admin/bookings/${booking.id}/end-ride`, {
         odometer_end: parseFloat(odometer),
-        fuel_level_end: fuelLevel,
+        fuel_level_end: `${Math.min(100, Math.max(0, Number(fuelLevel) || 0))}%`,
         photo_urls: photoUrls,
+        odometer_photo_url: odometerPhoto?.url ?? null,
         notes: notes || null,
         extra_charges: parseFloat(extraCharges) || 0,
         extra_charges_reason: extraReason || null,
@@ -154,9 +184,27 @@ export default function EndRideDialog({ booking, open, onOpenChange, onSuccess }
     }
   };
 
+  const fuelPct = Math.min(100, Math.max(0, Number(fuelLevel) || 0));
+  const handleFuelChange = (e) => {
+    const val = e.target.value;
+    if (val === "" || (Number(val) >= 0 && Number(val) <= 100)) {
+      setFuelLevel(val);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" data-testid="end-ride-dialog">
+      <DialogContent
+        className="sm:max-w-lg max-h-[90vh] overflow-y-auto border-0 shadow-2xl"
+        style={{
+          background: "rgba(255, 255, 255, 0.82)",
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          border: "1px solid rgba(255, 255, 255, 0.55)",
+          boxShadow: "0 8px 40px rgba(10, 25, 47, 0.18), 0 1.5px 0 rgba(255,255,255,0.7) inset",
+        }}
+        data-testid="end-ride-dialog"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-heading text-xl text-[#0A192F]">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
@@ -250,24 +298,108 @@ export default function EndRideDialog({ booking, open, onOpenChange, onSuccess }
                 Distance driven: <span className="font-semibold text-[#0A192F]">{kmDriven} km</span>
               </p>
             )}
+
+            {/* Odometer photo uploader */}
+            <div className="mt-2">
+              <p className="text-xs text-slate-500 mb-1.5">Odometer photo <span className="text-slate-400">(optional)</span></p>
+              {odometerPhoto ? (
+                <div className="relative w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-100" style={{ aspectRatio: "16/7" }}>
+                  <img src={odometerPhoto.preview} alt="Odometer" className="h-full w-full object-cover" />
+                  {odometerPhoto.uploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                      <Loader2 className="h-5 w-5 animate-spin text-white" />
+                    </div>
+                  )}
+                  {odometerPhoto.error && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-red-900/40">
+                      <p className="text-xs font-medium text-white">Upload failed</p>
+                    </div>
+                  )}
+                  {odometerPhoto.url && !odometerPhoto.uploading && (
+                    <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5">
+                      <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-[10px] font-medium text-white">Uploaded</span>
+                    </div>
+                  )}
+                  {!odometerPhoto.uploading && (
+                    <button
+                      type="button"
+                      onClick={removeOdometerPhoto}
+                      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-red-600 transition-colors"
+                      aria-label="Remove odometer photo"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => odometerInputRef.current?.click()}
+                  className="flex w-full items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/50 px-3 py-2.5 text-sm text-slate-500 transition-colors hover:border-red-400 hover:bg-red-50/30 hover:text-red-600"
+                >
+                  <ImagePlus className="h-4 w-4 shrink-0" />
+                  <span>Click to add odometer photo</span>
+                </button>
+              )}
+              <input
+                ref={odometerInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) handleOdometerPhoto(e.target.files[0]);
+                  e.target.value = "";
+                }}
+                data-testid="end-ride-odometer-photo-input"
+              />
+            </div>
           </div>
 
-          {/* Fuel Level */}
+
+          {/* Fuel Level — manual percentage */}
           <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5 text-sm font-medium">
+            <Label htmlFor="fuel-level-end" className="flex items-center gap-1.5 text-sm font-medium">
               <Fuel className="h-3.5 w-3.5 text-slate-500" />
-              Fuel Level
+              Fuel Level (%)
             </Label>
-            <Select value={fuelLevel} onValueChange={setFuelLevel}>
-              <SelectTrigger className="rounded-md" data-testid="end-ride-fuel">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FUEL_LEVELS.map((f) => (
-                  <SelectItem key={f} value={f}>{f}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="fuel-level-end"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  placeholder="e.g. 50"
+                  value={fuelLevel}
+                  onChange={handleFuelChange}
+                  className="rounded-md pr-8"
+                  data-testid="end-ride-fuel"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none">%</span>
+              </div>
+              <span
+                className="min-w-[3rem] rounded-md px-2 py-1.5 text-center text-sm font-semibold tabular-nums"
+                style={{
+                  background: `${fuelColor(fuelPct)}22`,
+                  color: fuelColor(fuelPct),
+                }}
+              >
+                {fuelPct}%
+              </span>
+            </div>
+            <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{ width: `${fuelPct}%`, background: fuelColor(fuelPct) }}
+              />
+            </div>
+            <p className="text-[11px] text-slate-400">
+              {fuelPct >= 80 ? "Full tank" : fuelPct >= 50 ? "Half or above" : fuelPct >= 25 ? "Below half" : fuelPct > 0 ? "Almost empty" : "Empty"}
+            </p>
           </div>
 
           {/* Return Condition Photos */}

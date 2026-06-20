@@ -13,6 +13,7 @@ import {
   Square,
   CreditCard,
   Check,
+  Gauge,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card } from "../components/ui/card";
@@ -503,6 +504,116 @@ export default function AdminBookingDetail() {
                 </div>
               </div>
             </Card>
+
+            {/* ── Odometer Before / After ── */}
+            {(booking.odometer_photo_start || booking.odometer_photo_end) && (
+              <Card className="rounded-xl border-slate-200 bg-white p-5 shadow-sm">
+                <h2 className="mb-5 font-heading text-base font-semibold text-[#0A192F] flex items-center gap-2">
+                  <Gauge className="h-4 w-4 text-slate-500" />
+                  Odometer — Before &amp; After
+                </h2>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Start odometer */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-emerald-700">
+                        Pickup
+                      </span>
+                    </div>
+                    {booking.odometer_photo_start ? (
+                      <a
+                        href={booking.odometer_photo_start}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group relative block w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 transition-all hover:shadow-md hover:ring-2 hover:ring-emerald-300"
+                        style={{ aspectRatio: "16/9" }}
+                      >
+                        <img
+                          src={booking.odometer_photo_start}
+                          alt="Odometer at pickup"
+                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                        <span className="absolute bottom-2 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[10px] text-white opacity-0 group-hover:opacity-100">
+                          Click to enlarge
+                        </span>
+                      </a>
+                    ) : (
+                      <div className="flex w-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50" style={{ aspectRatio: "16/9" }}>
+                        <p className="text-xs text-slate-400">No photo</p>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500">Reading</span>
+                      <span className="font-semibold text-[#0A192F]">
+                        {booking.odometer_start != null ? `${booking.odometer_start} km` : "—"}
+                      </span>
+                    </div>
+                    {booking.fuel_level_start && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-500">Fuel</span>
+                        <span className="font-medium text-emerald-700">{booking.fuel_level_start}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* End odometer */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-red-700">
+                        Return
+                      </span>
+                    </div>
+                    {booking.odometer_photo_end ? (
+                      <a
+                        href={booking.odometer_photo_end}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group relative block w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 transition-all hover:shadow-md hover:ring-2 hover:ring-red-300"
+                        style={{ aspectRatio: "16/9" }}
+                      >
+                        <img
+                          src={booking.odometer_photo_end}
+                          alt="Odometer at return"
+                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                        <span className="absolute bottom-2 right-2 rounded bg-black/50 px-1.5 py-0.5 text-[10px] text-white opacity-0 group-hover:opacity-100">
+                          Click to enlarge
+                        </span>
+                      </a>
+                    ) : (
+                      <div className="flex w-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50" style={{ aspectRatio: "16/9" }}>
+                        <p className="text-xs text-slate-400">
+                          {booking.status === "active" ? "Pending return" : "No photo"}
+                        </p>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500">Reading</span>
+                      <span className="font-semibold text-[#0A192F]">
+                        {booking.odometer_end != null ? `${booking.odometer_end} km` : "—"}
+                      </span>
+                    </div>
+                    {booking.fuel_level_end && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-500">Fuel</span>
+                        <span className="font-medium text-red-600">{booking.fuel_level_end}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Distance summary */}
+                {booking.km_driven != null && (
+                  <div className="mt-4 flex items-center justify-between rounded-lg bg-slate-50 px-4 py-3 text-sm">
+                    <span className="text-slate-500">Total distance driven</span>
+                    <span className="font-heading text-base font-bold text-[#0A192F]">{booking.km_driven} km</span>
+                  </div>
+                )}
+              </Card>
+            )}
 
             {/* ── Ride Condition Photos ── */}
             {(booking.pickup_photos?.length > 0 || booking.return_photos?.length > 0) && (
