@@ -23,7 +23,7 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import StatusBadge from "../components/StatusBadge";
 import { api, formatINR, fileUrl } from "../lib/api";
-import { payForBooking } from "../lib/razorpay";
+import { payForBooking } from "../lib/payu";
 import { toast } from "sonner";
 
 export default function BookingDetail() {

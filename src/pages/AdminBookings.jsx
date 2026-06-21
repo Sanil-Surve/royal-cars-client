@@ -37,16 +37,6 @@ export default function AdminBookings() {
     }
   };
 
-  const chargeBalance = async (id) => {
-    try {
-      await api.post(`/admin/bookings/${id}/charge-balance`);
-      toast.success("Balance charged to saved card");
-      load();
-    } catch (e) {
-      toast.error(formatApiErrorDetail(e.response?.data?.detail) || e.message);
-    }
-  };
-
   const markBalancePaid = async (id) => {
     if (!window.confirm("Mark balance as paid in cash at pickup?")) return;
     try {
@@ -130,12 +120,7 @@ export default function AdminBookings() {
                         <Square className="mr-1 h-3 w-3" /> End
                       </Button>
                     )}
-                    {b.balance_amount > 0 && b.razorpay_token_id && (
-                      <Button size="sm" onClick={(e) => { e.stopPropagation(); chargeBalance(b.id); }} className="h-8 rounded-md bg-[#D4AF37] text-[#0A192F] hover:bg-[#D4AF37]/90" data-testid={`charge-balance-${b.id}`} title="Auto-charge balance to saved card">
-                        <CreditCard className="mr-1 h-3 w-3" /> Charge {formatINR(b.balance_amount)}
-                      </Button>
-                    )}
-                    {b.balance_amount > 0 && !b.razorpay_token_id && (
+                    {b.balance_amount > 0 && (
                       <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); markBalancePaid(b.id); }} className="h-8 rounded-md" data-testid={`mark-paid-${b.id}`} title="Cash collected at pickup">
                         <Check className="mr-1 h-3 w-3" /> Mark paid
                       </Button>

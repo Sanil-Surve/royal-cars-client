@@ -6,7 +6,7 @@ import Navbar from "../components/Navbar";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { api, formatINR } from "../lib/api";
-import { payForBooking } from "../lib/razorpay";
+import { payForBooking } from "../lib/payu";
 import StatusBadge from "../components/StatusBadge";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";

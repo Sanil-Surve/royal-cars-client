@@ -31,7 +31,7 @@ export default function AdminPayments() {
           <TableBody>
             {items.map((p) => (
               <TableRow key={p.id} data-testid={`payment-row-${p.id}`}>
-                <TableCell className="font-mono text-xs">{p.razorpay_order_id}</TableCell>
+                <TableCell className="font-mono text-xs">{p.payu_txnid || p.razorpay_order_id || p.id?.slice(0, 8)}</TableCell>
                 <TableCell className="font-mono text-xs">{p.booking_id?.slice(0, 8)}</TableCell>
                 <TableCell>{p.payment_type}</TableCell>
                 <TableCell>{formatINR(p.amount)}</TableCell>

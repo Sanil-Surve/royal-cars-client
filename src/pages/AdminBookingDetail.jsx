@@ -91,16 +91,6 @@ export default function AdminBookingDetail() {
     }
   };
 
-  const chargeBalance = async () => {
-    try {
-      await api.post(`/admin/bookings/${id}/charge-balance`);
-      toast.success("Balance charged to saved card");
-      load();
-    } catch (e) {
-      toast.error(formatApiErrorDetail(e.response?.data?.detail) || e.message);
-    }
-  };
-
   const markBalancePaid = async () => {
     if (!window.confirm("Mark balance as paid in cash at pickup?")) return;
     try {
@@ -206,20 +196,8 @@ export default function AdminBookingDetail() {
           </Button>
         )}
 
-        {/* Charge balance */}
-        {balanceAmount > 0 && booking.razorpay_token_id && (
-          <Button
-            className="mb-3 w-full rounded-md bg-[#D4AF37] text-[#0A192F] hover:bg-[#D4AF37]/90"
-            onClick={chargeBalance}
-            data-testid="detail-charge-balance"
-          >
-            <CreditCard className="mr-2 h-4 w-4" />
-            Charge {formatINR(balanceAmount)}
-          </Button>
-        )}
-
-        {/* Mark paid */}
-        {balanceAmount > 0 && !booking.razorpay_token_id && (
+        {/* Mark balance paid (cash at pickup) */}
+        {balanceAmount > 0 && (
           <Button
             variant="outline"
             className="w-full rounded-md border-slate-300"
@@ -227,7 +205,7 @@ export default function AdminBookingDetail() {
             data-testid="detail-mark-paid"
           >
             <Check className="mr-2 h-4 w-4" />
-            Mark Paid
+            Mark Balance Paid
           </Button>
         )}
       </Card>
