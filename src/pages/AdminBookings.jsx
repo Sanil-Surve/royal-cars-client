@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CreditCard, Check, Play, Square } from "lucide-react";
+import { CreditCard, Check, Play, Square, Plus } from "lucide-react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -50,18 +50,27 @@ export default function AdminBookings() {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-widest text-slate-500">Operations</div>
           <h1 className="font-heading text-3xl font-bold text-[#0A192F]" data-testid="admin-bookings-title">Bookings</h1>
         </div>
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-48 rounded-md" data-testid="admin-bookings-filter"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => navigate("/admin/bookings/new")}
+            className="rounded-md bg-[#0A192F] text-white hover:bg-[#0A192F]/90"
+            data-testid="admin-new-booking-btn"
+          >
+            <Plus className="mr-1 h-4 w-4" /> New Booking
+          </Button>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-48 rounded-md" data-testid="admin-bookings-filter"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Card className="rounded-lg border-slate-200 overflow-hidden">

@@ -29,6 +29,7 @@ import AdminLocations from "@/pages/AdminLocations";
 import AdminPayments from "@/pages/AdminPayments";
 import AdminCoupons from "@/pages/AdminCoupons";
 import AdminAnalytics from "@/pages/AdminAnalytics";
+import AdminManualBooking from "@/pages/AdminManualBooking";
 
 function App() {
   return (
@@ -54,6 +55,7 @@ function App() {
               <Route path="vehicles" element={<AdminVehicles />} />
               <Route path="kyc" element={<AdminKYC />} />
               <Route path="bookings" element={<AdminBookings />} />
+              <Route path="bookings/new" element={<AdminManualBooking />} />
               <Route path="bookings/:id" element={<AdminBookingDetail />} />
               <Route path="customers" element={<AdminCustomers />} />
               <Route path="customers/:id" element={<AdminCustomerDetail />} />
