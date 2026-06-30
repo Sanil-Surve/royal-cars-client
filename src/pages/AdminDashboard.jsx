@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Car, CalendarCheck, Users, IndianRupee, FileCheck2, TrendingUp,
-  Play, Square, Clock, Gauge, MapPin, Phone, Timer,
+  Play, Square, Clock, Gauge, MapPin, Phone, Timer, Zap, RotateCcw,
 } from "lucide-react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -9,6 +9,7 @@ import { api, formatINR } from "../lib/api";
 import StatusBadge from "../components/StatusBadge";
 import StartRideDialog from "../components/StartRideDialog";
 import EndRideDialog from "../components/EndRideDialog";
+import { toast } from "sonner";
 
 const CARDS = [
   { key: "revenue", label: "Revenue collected", icon: IndianRupee, money: true },
@@ -18,6 +19,166 @@ const CARDS = [
   { key: "total_customers", label: "Customers", icon: Users },
   { key: "available_vehicles", label: "Available vehicles", icon: Car },
 ];
+
+// ── Price Hike Card ────────────────────────────────────────────────────────────
+function multiplierLabel(v) {
+  if (v <= 1.0) return { text: "Normal pricing", color: "text-emerald-600", bg: "bg-emerald-500" };
+  if (v < 1.3)  return { text: "Slight surge",   color: "text-amber-500",   bg: "bg-amber-400" };
+  if (v < 1.6)  return { text: "Moderate surge", color: "text-orange-500",  bg: "bg-orange-500" };
+  return         { text: "High surge",      color: "text-red-600",    bg: "bg-red-600" };
+}
+
+function PriceHikeCard({ onApplied }) {
+  const [current, setCurrent]   = useState(1.0);
+  const [draft, setDraft]       = useState(1.0);
+  const [loading, setLoading]   = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [appliedAt, setAppliedAt] = useState(null);
+
+  const fetchHike = useCallback(async () => {
+    setFetching(true);
+    try {
+      const { data } = await api.get("/admin/price-hike");
+      setCurrent(data.multiplier);
+      setDraft(data.multiplier);
+      setAppliedAt(data.applied_at);
+    } catch { /* non-critical */ }
+    finally { setFetching(false); }
+  }, []);
+
+  useEffect(() => { fetchHike(); }, [fetchHike]);
+
+  const handleApply = async () => {
+    if (draft === current) return;
+    setLoading(true);
+    try {
+      const { data } = await api.post(`/admin/price-hike?multiplier=${draft}`);
+      setCurrent(data.multiplier);
+      setAppliedAt(data.applied_at);
+      toast.success(`Price hike set to ${data.multiplier}× — ${data.vehicles_updated} vehicles updated`);
+      if (onApplied) onApplied();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Failed to apply price hike");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = () => setDraft(1.0);
+
+  const label = multiplierLabel(draft);
+  const currentLabel = multiplierLabel(current);
+  const isDirty = draft !== current;
+  const fillPct = ((draft - 1.0) / 1.0) * 100;
+
+  return (
+    <Card className="mt-6 rounded-lg border-slate-200 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between p-5 border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <div className={`flex h-9 w-9 items-center justify-center rounded-full ${
+            current > 1.0 ? "bg-amber-100" : "bg-slate-100"
+          }`}>
+            <Zap className={`h-4 w-4 ${current > 1.0 ? "text-amber-600" : "text-slate-500"}`} />
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-widest text-slate-500">Surge Pricing</div>
+            <h2 className="font-heading text-lg font-bold text-[#0A192F]">Price Hike Control</h2>
+          </div>
+        </div>
+        {/* Current status badge */}
+        <div className="text-right">
+          <div className={`text-xs font-semibold uppercase tracking-wide ${currentLabel.color}`}>
+            {fetching ? "—" : `${current}× Active`}
+          </div>
+          {appliedAt && (
+            <div className="text-xs text-slate-400 mt-0.5">
+              {new Date(appliedAt).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Slider body */}
+      <div className="p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <span className="font-heading text-4xl font-bold text-[#0A192F]">{draft.toFixed(1)}×</span>
+            <span className={`ml-2 text-sm font-semibold ${label.color}`}>{label.text}</span>
+          </div>
+          {isDirty && (
+            <button
+              type="button"
+              onClick={handleReset}
+              className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 transition"
+              data-testid="price-hike-reset"
+            >
+              <RotateCcw className="h-3 w-3" /> Reset
+            </button>
+          )}
+        </div>
+
+        {/* Custom styled range slider */}
+        <div className="relative mb-4">
+          {/* track background */}
+          <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-150 ${label.bg}`}
+              style={{ width: `${fillPct}%` }}
+            />
+          </div>
+          <input
+            type="range"
+            min={1.0}
+            max={2.0}
+            step={0.1}
+            value={draft}
+            onChange={(e) => setDraft(parseFloat(e.target.value))}
+            className="absolute inset-0 w-full opacity-0 cursor-pointer h-2"
+            data-testid="price-hike-slider"
+          />
+        </div>
+
+        {/* Tick labels */}
+        <div className="flex justify-between text-xs text-slate-400 mb-5">
+          {[1.0,1.2,1.4,1.6,1.8,2.0].map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setDraft(v)}
+              className={`font-mono transition ${
+                draft === v ? "text-[#0A192F] font-bold" : "hover:text-slate-600"
+              }`}
+            >
+              {v.toFixed(1)}×
+            </button>
+          ))}
+        </div>
+
+        {/* Impact preview */}
+        {isDirty && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <strong>Preview:</strong> A car priced at ₹2,000/day will become{" "}
+            <strong>₹{(2000 * draft).toLocaleString("en-IN")}/day</strong> at {draft.toFixed(1)}×.
+          </div>
+        )}
+
+        <Button
+          onClick={handleApply}
+          disabled={!isDirty || loading}
+          className={`w-full rounded-md font-semibold transition ${
+            draft > 1.0
+              ? "bg-amber-500 hover:bg-amber-600 text-white"
+              : "bg-[#0A192F] hover:bg-[#0A192F]/90 text-white"
+          } disabled:opacity-40`}
+          data-testid="price-hike-apply"
+        >
+          {loading ? "Applying…" : isDirty ? `Apply ${draft.toFixed(1)}× Hike to All Vehicles` : "No changes"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
 
 function getElapsedTime(startIso) {
   if (!startIso) return "—";
@@ -115,6 +276,9 @@ export default function AdminDashboard() {
         </div>
         <p className="mt-2 text-xs text-slate-500">Share of fleet currently held in active bookings.</p>
       </Card>
+
+      {/* Price Hike Control */}
+      <PriceHikeCard onApplied={loadMetrics} />
 
       {/* Active Rides - Live */}
       <div className="mt-8">
